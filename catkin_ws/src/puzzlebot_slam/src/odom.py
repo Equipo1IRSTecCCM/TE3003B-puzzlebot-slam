@@ -57,8 +57,8 @@ class k_model:
 
         rospy.init_node('puzzlebot_deadReckoning')
         self.pub_odom = rospy.Publisher('/odom', Odometry, queue_size=10)
-        self.wl_sub = rospy.Subscriber('/wl', Float64, self.wr_cb)
-        self.wr_sub = rospy.Subscriber('/wr', Float64, self.wl_cb)
+        self.wl_sub = rospy.Subscriber('/wl', Float32, self.wr_cb)
+        self.wr_sub = rospy.Subscriber('/wr', Float32, self.wl_cb)
 
     
     
@@ -73,7 +73,7 @@ class k_model:
             dt = 0.1
             past_t = rospy.Time.now()
             
-            rate = rospy.Rate(1/dt)
+            rate = rospy.Rate(7)
             rate.sleep()
             while not rospy.is_shutdown():
                 now_t = rospy.Time.now()
@@ -84,11 +84,11 @@ class k_model:
                 self.th += self.w * dt
                 self.x += self.v * np.cos(self.th) * dt
                 self.y += self.v * np.sin(self.th) * dt
-                sigma = self.cov.get_cov(self.wl,self.wr,self.v,[self.x,self.y,self.th],dt)
+                #sigma = self.cov.get_cov(self.wl,self.wr,self.v,[self.x,self.y,self.th],dt)
                 o = Odometry()
                 o.header.frame_id = "odom"
-                o.child_frame_id = "base_link"
-                o.header.stamp = now_t
+                o.child_frame_id = "base_footprint"
+                o.header.stamp = rospy.Time.now()
                 o.pose.pose.position.x = self.x
                 o.pose.pose.position.y = self.y
 
@@ -96,10 +96,10 @@ class k_model:
                 o.pose.pose.orientation = quat
                 
                 co = np.zeros((6,6),dtype=float)
-                co[:2,:2] = sigma[:2,:2]
-                co[-1,:2] = sigma[-1,:2]
-                co[:2,-1] = sigma[:2,-1]
-                co[-1,-1] = sigma[-1,-1]
+                # co[:2,:2] = sigma[:2,:2]
+                # co[-1,:2] = sigma[-1,:2]
+                # co[:2,-1] = sigma[:2,-1]
+                # co[-1,-1] = sigma[-1,-1]
                 #o.pose.covariance = co.reshape(36).tolist()
 
                 o.twist.twist.linear.x = self.v

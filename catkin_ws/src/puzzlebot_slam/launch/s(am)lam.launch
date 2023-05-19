@@ -15,11 +15,11 @@
     </node>
 
     <node name="joint_state_publisher"  pkg="joint_state_publisher" type="joint_state_publisher"/> 
-    <!--node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
         <param name="base_frame" value="base_link"/>
         <param name="odom_frame" value="odom"/>
         <rosparam command="load" file="$(find puzzlebot_slam)/config/gmapping_params.yaml" />
-    </node-->
+    </node>
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find puzzlebot_rviz)/config_slam.rviz"/>
     <include file="$(find teleop_twist_joy)/launch/teleop.launch">
     <arg name="joy_config" value="xbox" />

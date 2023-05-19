@@ -19,7 +19,7 @@
   <!-- rviz -->
   <group if="$(arg open_rviz)"> 
     <node pkg="rviz" type="rviz" name="rviz" required="true"
-          args="-d $(find turtlebot3_slam)/rviz/turtlebot3_$(arg slam_methods).rviz"/>
+          args="-d $(find puzzlebot_rviz)/config_nav.rviz"/>
   </group>
   <node name="puzzlebot_tf" pkg="puzzlebot_slam" type="transformer.py"/>
   <node name="puzzlebot_odom" pkg="puzzlebot_slam" type="odom.py"/>
