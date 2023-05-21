@@ -68,7 +68,7 @@ class ctrl:
                         l += increase
                 else:
                     l -= increase * 3
-            if self.linear == 0 and abs(l) < 0.05:
+            if self.linear == 0 and abs(l) < 0.07:
                 l = 0.0
             t.linear.x = l
             adjst_a = abs(l / 1.0) * 3.0

@@ -3,9 +3,10 @@ import numpy as np
 import cv2
 import rospy
 import tf
+from tf.transformations import quaternion_from_euler
 from nav_msgs.msg import OccupancyGrid, Odometry
-from geometry_msgs.msg import PointStamped
-from std_msgs.msg import Int16
+from geometry_msgs.msg import PointStamped, PoseStamped, Quaternion
+from std_msgs.msg import Int16, Float32
 
 class mapping():
     def __init__(self):
@@ -18,8 +19,10 @@ class mapping():
         self.y_obj = 0.0
         self.sub_map = rospy.Subscriber('/map', OccupancyGrid, self.callback_map)
         self.sub_odom = rospy.Subscriber('/odom', Odometry, self.callback_odom)
-        self.pub_count = rospy.Publisher("/brain/map_count",Int16, queue_size=10)
-        self.pub_goal = rospy.Publisher('/brain/map_objective',PointStamped, queue_size=10)
+        self.pub_count = rospy.Publisher("/brain/map_count", Int16, queue_size=10)
+        self.pub_debug = rospy.Publisher("brain/debug", Float32, queue_size=10)
+        self.pub_goal = rospy.Publisher('/brain/map_objective', PointStamped, queue_size=10)
+        self.pub_pose = rospy.Publisher('/move_base_simple/goal', PoseStamped,queue_size=10)
     def callback_odom(self,msg):
         self.x=msg.pose.pose.position.x
         self.y=msg.pose.pose.position.y
@@ -63,7 +66,7 @@ class mapping():
         count = border[border > 0].shape[0]
         self.pub_count.publish(count)
         dist = np.sqrt((self.x_obj - self.x)**2 + (self.y_obj - self.y)**2)
-        if dist < 0.5:
+        if dist < 1:
             self.getObjective(border)
         else:
             #Convert to world coordinates
@@ -83,19 +86,35 @@ class mapping():
         #Get the closest one inside of the ones in border
         indices = np.array(np.where(border == 255))
         distances = np.sqrt((indices[0] - self.position[0])**2 + (indices[1] - self.position[1])**2)
+        if len(distances) == 0:
+            self.x_obj = self.x
+            self.y_obj = self.y
+            return
         idx = np.argmax(distances)
         [self.y_obj, self.x_obj] = indices[:,idx]
-
+        #Get the orientation
+        direction = cv2.Laplacian(border,cv2.CV_64F)
+        d = np.arctan(direction[self.y_obj,self.x_obj])
+        self.pub_debug.publish(d)
+        quat = Quaternion(*quaternion_from_euler(0,0,self.th))
+        self.pub_debug.publish(d)
+       
+        #Create msgs
+        pose = PoseStamped()
+        pose.header.frame_id = "map"
+        pose.header.stamp = rospy.Time.now()
         #Convert to world coordinates
-        point = PointStamped()
-        point.header.stamp = rospy.Time.now()
-        point.header.frame_id = "map"
-        point.point.x = self.x_obj*self.info.resolution + self.info.origin.position.x
-        point.point.y = self.y_obj*self.info.resolution + self.info.origin.position.y
+        pose.pose.position.x = self.x_obj*self.info.resolution + self.info.origin.position.x
+        pose.pose.position.y = self.y_obj*self.info.resolution + self.info.origin.position.y
+        # pose.pose.orientation.x = quat[0]
+        # pose.pose.orientation.y = quat[1]
+        # pose.pose.orientation.z = quat[2]
+        pose.pose.orientation = quat
         #Publish
-        self.pub_goal.publish(point)
-        self.x_obj = point.point.x
-        self.y_obj = point.point.y
+        self.pub_pose.publish(pose)
+        
+        self.x_obj = pose.pose.position.x
+        self.y_obj = pose.pose.position.y
         
 
 if __name__ == "__main__":

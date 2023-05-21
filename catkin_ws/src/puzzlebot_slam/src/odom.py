@@ -78,7 +78,7 @@ class k_model:
             while not rospy.is_shutdown():
                 now_t = rospy.Time.now()
                 dt = (now_t - past_t).to_sec()
-                self.w = R * (self.wr - self.wl) / L
+                self.w = -R * (self.wr - self.wl) / L
                 self.v = R * (self.wr + self.wl) * 0.5
                 
                 self.th += self.w * dt
