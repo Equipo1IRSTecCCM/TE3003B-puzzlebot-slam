@@ -9,13 +9,13 @@
     <arg name="prefix" default=""/>
     <arg name="name" default="puzzlebot"/>
 
-    <node name="puzzlebot_controller" pkg="puzzlebot_control" type="puzzlebot_control_node"/>
+    <!-- <node name="puzzlebot_controller" pkg="puzzlebot_control" type="puzzlebot_control_node"/> -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
         <param name="tf_prefix" value="$(arg prefix)" />
     </node>
 
     <node name="joint_state_publisher"  pkg="joint_state_publisher" type="joint_state_publisher"/> 
-    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping">
         <param name="base_frame" value="base_link"/>
         <param name="odom_frame" value="odom"/>
         <param name="map_update_interval" value="0.5"/>
@@ -24,4 +24,5 @@
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find puzzlebot_rviz)/config_slam.rviz"/>
     <include file="$(find forza_ctrl)/launch/ctrl.launch"/>
     <!-- <include file="$(find controller)/launch/move_base.launch"/> -->
+    <include file="$(find puzzlebot_navigation)/launch/run_nav.launch"/>
 </launch>

@@ -1,3 +1,3 @@
 # Variables compartidas
-n_iter = 100
+n_iter = 20
 rate_hz = 10

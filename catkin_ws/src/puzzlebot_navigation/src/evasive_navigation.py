@@ -76,8 +76,8 @@ def callbackScan(msg):
     global break_v
     global turn_b
     scan = np.array(msg.ranges)
-    ang = msg.angle_min - np.pi
-    andf = msg.angle_max - np.pi
+    ang = msg.angle_min + np.pi
+    andf = msg.angle_max + np.pi
     inc = msg.angle_increment
     angles = np.arange(ang,andf+inc,inc)
     angles = angles[np.r_[-60:60]]
@@ -117,7 +117,7 @@ class Turn(State):
         vel = Twist()
         ang = np.arctan2(goal[1]-pos.linear.y,goal[0]-pos.linear.x)
         vel.angular.z = smallest_angle_diff(ang,pos.angular.z)*2
-        vel.angular.z = vel.angular.z if abs(vel.angular.z) <= 2.84 else 2.84*np.sign(vel.angular.z)
+        vel.angular.z = vel.angular.z if abs(vel.angular.z) <= 0.2 else 0.2*np.sign(vel.angular.z)
         pub.publish(vel)
         rate.sleep()
         if abs(smallest_angle_diff(ang,pos.angular.z)) > 0.01:
@@ -149,10 +149,10 @@ class Foward(State):
         vel = Twist()
         ang = np.arctan2(goal[1]-pos.linear.y,goal[0]-pos.linear.x)
         vel.angular.z = smallest_angle_diff(ang,pos.angular.z)*2 if turn_b == 0 else turn_b*(1-break_v) if break_v >= 0 else 0
-        vel.angular.z = vel.angular.z if abs(vel.angular.z) <= 2.84 else 2.84*np.sign(vel.angular.z)
+        vel.angular.z = vel.angular.z if abs(vel.angular.z) <= 0.1 else 0.1*np.sign(vel.angular.z)
         dis = np.sqrt((pos.linear.x - goal[0])**2 + (pos.linear.y - goal[1])**2)
         vel.linear.x = dis*(break_v)
-        vel.linear.x = vel.linear.x if abs(vel.linear.x) <= 0.22 else 0.22*np.sign(vel.linear.x)*abs(break_v)
+        vel.linear.x = vel.linear.x if abs(vel.linear.x) <= 0.2 else 0.2*np.sign(vel.linear.x)*abs(break_v)
         pub.publish(vel)
         rate.sleep()
         if dis > 0.01:

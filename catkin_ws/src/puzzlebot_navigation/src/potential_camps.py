@@ -105,14 +105,14 @@ def get_Rep_Force():
     data=laser.get_data()
     lec=np.asarray(data.ranges)
     lec[np.isinf(lec)]=13.5
-    deltaang=   ( data.angle_max-data.angle_min  )   /len(data.ranges)
+    deltaang=   data.angle_increment
     laserdegs=  np.arange(data.angle_min,data.angle_max,deltaang)
     Fx=  0.0
     Fy = 0.0
     for i,deg in enumerate(laserdegs):
-        if i >=360:break 
+        # if i >=360:break 
 
-        if (lec[i] < 4.9): ###TUNABLE
+        if (lec[i] < 1.0): ###TUNABLE
             Fx = Fx + (1/lec[i])**2 * np.cos(deg)
             Fy = Fy + (1/lec[i])**2 * np.sin(deg)
     Fth= np.arctan2(Fy,(Fx))+np.pi
@@ -172,7 +172,7 @@ def get_Speed(Ftotx,Ftoty,Ftotth):
 
 
 import random
-rate = rospy.Rate(10)
+rate = rospy.Rate(20)
 counter=0
 me_muero = False
 charger = [0,0]
@@ -192,13 +192,13 @@ while not rospy.is_shutdown():
         Fatx,Faty,Fmagat,Fatrth, euclD =get_Att_Force()
         #######TUNABLE
     
-        Ftotx= Fmag*np.cos(Fth)*.004   +    Fmagat*np.cos(Fatrth)# * signer
-        Ftoty= Fmag*np.sin(Fth)*.004    +    Fmagat*np.sin(Fatrth)# * signer
+        Ftotx= -Fmag*np.cos(Fth)*.003   +    Fmagat*np.cos(Fatrth) * 2.0# * signer
+        Ftoty= -Fmag*np.sin(Fth)*.003    +    Fmagat*np.sin(Fatrth) * 2.0# * signer
         Ftotth=np.arctan2(Ftoty,Ftotx)
         ###ANGLE NORMALIZATION
         if ( Ftotth> np.pi ):     Ftotth=       -np.pi-    (Ftotth-np.pi)
         if (Ftotth < -np.pi): Ftotth= (Ftotth     +2 *np.pi)
-        if counter==1000000:
+        if counter==100:
             print('Ftotxy',Ftotx,Ftoty,Ftotth*180/np.pi, 'eulcD', euclD)
             counter=0
         ####
@@ -209,6 +209,8 @@ while not rospy.is_shutdown():
         if euclD < radioRobot * 2: 
             #speed.linear.x = 0 
             #speed.angular.z = 0
+            speed.angular.z = 0.0
+            speed.linear.x = 0.0
             print("im here", euclD,(euclD < radioRobot))
             #me_muero = True
             if counter > n_s:
@@ -252,34 +254,6 @@ while not rospy.is_shutdown():
 #  
 #  
 
-
-# # Obtener la ubicación del agente en el mapa... MAPAS SLAM:... 
-
-
-import tf2_ros
-tfBuffer = tf2_ros.Buffer()
-listener = tf2_ros.TransformListener(tfBuffer)
-def get_coords ():
-    trans = tfBuffer.lookup_transform('map', 'base_link', rospy.Time())
-    return trans
-
-
-
-t=get_coords()
-type (t)
-
-
-broadcaster = tf2_ros.StaticTransformBroadcaster()
-
-
-t.child_frame_id='here'
-
-
-broadcaster = tf2_ros.StaticTransformBroadcaster()
-
-
-
-broadcaster.sendTransform(t)
 
 
 

@@ -64,6 +64,14 @@ class mapping():
         border = cv2.bitwise_and(front,cv2.bitwise_not(front_wo))
         #Get number of pixels that are still missing to explore
         count = border[border > 0].shape[0]
+        # if count < 5:
+        #     point = PointStamped()
+        #     point.header.stamp = rospy.Time.now()
+        #     point.header.frame_id = "map"
+        #     point.point.x = self.x
+        #     point.point.y = self.y
+        #     #Publish
+        #     self.pub_goal.publish(point)
         self.pub_count.publish(count)
         dist = np.sqrt((self.x_obj - self.x)**2 + (self.y_obj - self.y)**2)
         if dist < 1:

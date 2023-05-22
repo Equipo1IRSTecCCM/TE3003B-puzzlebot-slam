@@ -18,10 +18,12 @@ class tf_model:
         self.y = 0.0
         self.quat = Quaternion(*quaternion_from_euler(0,0,0))
         self.R = R
+        if prefix != "":
+            prefix = "/" + prefix
         self.prefix = prefix
-        self.sub_odom = rospy.Subscriber('/odom', Odometry, self.odom_cb)
-        self.sub_scan = rospy.Subscriber("/scan_lag",LaserScan, self.scan_cb)
-        self.pub_scan = rospy.Publisher("/scan",LaserScan,queue_size=10)
+        self.sub_odom = rospy.Subscriber('{}/odom'.format(self.prefix), Odometry, self.odom_cb)
+        self.sub_scan = rospy.Subscriber("{}/scan_lag".format(self.prefix),LaserScan, self.scan_cb)
+        self.pub_scan = rospy.Publisher("{}/scan".format(self.prefix),LaserScan,queue_size=10)
         #self.publish_static()
         self.tf_broadcaster = tf.TransformBroadcaster()
     def scan_cb(self,msg):
@@ -46,8 +48,8 @@ class tf_model:
         
             pose_trans = TransformStamped()
             pose_trans.header.stamp = rospy.Time.now()
-            pose_trans.header.frame_id = "odom"
-            pose_trans.child_frame_id = self.prefix + "base_footprint"
+            pose_trans.header.frame_id = self.prefix + "/odom"
+            pose_trans.child_frame_id = self.prefix + "/base_footprint"
 
             pose_trans.transform.translation.x = self.x
             pose_trans.transform.translation.y = self.y
@@ -57,8 +59,8 @@ class tf_model:
 
             pose_trans = TransformStamped()
             pose_trans.header.stamp = rospy.Time.now()
-            pose_trans.header.frame_id = "base_footprint"
-            pose_trans.child_frame_id = self.prefix + "base_link"
+            pose_trans.header.frame_id = self.prefix + "/base_footprint"
+            pose_trans.child_frame_id = self.prefix + "/base_link"
 
             pose_trans.transform.translation.x = 0
             pose_trans.transform.translation.y = 0
@@ -68,8 +70,8 @@ class tf_model:
             #Gazebo
             gaz_trans = TransformStamped()
             gaz_trans.header.stamp = rospy.Time.now()
-            gaz_trans.header.frame_id = "map"
-            gaz_trans.child_frame_id = self.prefix + "odom"
+            gaz_trans.header.frame_id = "/map"
+            gaz_trans.child_frame_id = self.prefix + "/odom"
 
             gaz_trans.transform.translation.x = 0
             gaz_trans.transform.translation.y = 0
@@ -79,6 +81,10 @@ class tf_model:
             rate.sleep()
 
 if __name__ == "__main__":
+    try:
+        p = rospy.get_param('puzzlebot_tf/prefix_robot')
+    except:
+        p = ""
     rospy.init_node('puzzlebot_tf')
-    model = tf_model()
+    model = tf_model(p)
     model.run()

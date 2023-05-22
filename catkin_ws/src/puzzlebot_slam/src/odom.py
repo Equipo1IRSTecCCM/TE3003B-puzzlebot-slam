@@ -8,6 +8,7 @@ from tf.transformations import quaternion_from_euler
 from std_msgs.msg import Float32, Float64
 from math import cos, sin
 import numpy as np
+
 L = 0.191
 R = 0.05
 
@@ -44,7 +45,7 @@ class covariance_generator:
         return self.sigma
 
 class k_model:
-    def __init__(self):
+    def __init__(self, prefix = ""):
         self.x = 0.0
         self.y = 0.0
         self.th = 0.0
@@ -52,13 +53,15 @@ class k_model:
         self.w = 0.0
         self.wr = 0.0
         self.wl = 0.0
-
+        if prefix != "":
+            prefix = "/" + prefix
+        self.prefix = prefix
         self.cov = covariance_generator()
 
         rospy.init_node('puzzlebot_deadReckoning')
-        self.pub_odom = rospy.Publisher('/odom', Odometry, queue_size=10)
-        self.wl_sub = rospy.Subscriber('/wl', Float32, self.wr_cb)
-        self.wr_sub = rospy.Subscriber('/wr', Float32, self.wl_cb)
+        self.pub_odom = rospy.Publisher('{}/odom'.format(self.prefix), Odometry, queue_size=10)
+        self.wl_sub = rospy.Subscriber('{}/wl'.format(self.prefix), Float32, self.wr_cb)
+        self.wr_sub = rospy.Subscriber('{}/wr'.format(self.prefix), Float32, self.wl_cb)
 
     
     
@@ -86,8 +89,8 @@ class k_model:
                 self.y += self.v * np.sin(self.th) * dt
                 #sigma = self.cov.get_cov(self.wl,self.wr,self.v,[self.x,self.y,self.th],dt)
                 o = Odometry()
-                o.header.frame_id = "odom"
-                o.child_frame_id = "base_footprint"
+                o.header.frame_id = "{}/odom".format(self.prefix)
+                o.child_frame_id = "{}/base_footprint".format(self.prefix)
                 o.header.stamp = rospy.Time.now()
                 o.pose.pose.position.x = self.x
                 o.pose.pose.position.y = self.y
@@ -111,7 +114,12 @@ class k_model:
             pass
 
 if __name__ == "__main__":
-    model = k_model()
+    # param_name = rospy.search_param()
+    try:
+        p = rospy.get_param('puzzlebot_odom/prefix_robot')
+    except:
+        p = ""
+    model = k_model(p)
     model.run()
 
 
