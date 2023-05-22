@@ -43,7 +43,7 @@
             <param name="map_update_interval" value="0.5"/>
             <rosparam command="load" file="$(find puzzlebot_slam)/config/gmapping_params.yaml" />
         </node>
-        <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find puzzlebot_rviz)/config_slam.rviz"/> -->
+        <node name="rviz" pkg="rviz" type="rviz" args="-d $(find puzzlebot_rviz)/config_slam.rviz"/>
         <!-- <include file="$(find forza_ctrl)/launch/ctrl.launch"/> -->
         <include file="$(find puzzlebot_navigation)/launch/run_nav.launch"/>
     </group>
