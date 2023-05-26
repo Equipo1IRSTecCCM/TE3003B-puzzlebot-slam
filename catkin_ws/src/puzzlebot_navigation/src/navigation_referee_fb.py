@@ -135,7 +135,7 @@ def get_count(msg):
     global count_map
     global map_done
     count_map = msg.data
-    if not map_done and count_map < 30:
+    if count_map < 30 and not map_done:
         map_done = True
 
 def get_fh(msg):
@@ -157,8 +157,7 @@ sub_go = rospy.Subscriber('nav/go',Bool,get_go)
 # sub_obj = rospy.Subscriber('/objective',PointStamped,get_obj)
 sub_std = rospy.Subscriber('/nav/std',Float32,get_std)
 pub_restart = rospy.Publisher('/nav/restart',Bool,queue_size=10)
-sub_finish_he = rospy.Subscriber('/he/finish',Bool,get_fh)
-sub_finish_mm = rospy.Subscriber('/mm/finish',Bool,get_fm)
+sub_count = rospy.Subscriber('/map_count', Int16, get_count)
 
 
 
@@ -180,8 +179,9 @@ class Campos(smach.State):
         global e2c
         global rate
         global finished
+        global map_done
         print('Executing state Campos')
-        if not finished:
+        if not finished and not map_done:
             base_vel_pub.publish(self.cmd_camp.data)
         rate.sleep()
         if go:
@@ -213,7 +213,8 @@ class Evasion(smach.State):
         global c2e
         global e2c
         global finished
-        if not finished:
+        global map_done
+        if not finished and not map_done:
             base_vel_pub.publish(self.cmd_eva.data)
         rate.sleep()
         if go:

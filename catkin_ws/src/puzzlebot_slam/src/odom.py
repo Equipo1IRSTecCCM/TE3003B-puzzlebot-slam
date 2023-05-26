@@ -45,10 +45,10 @@ class covariance_generator:
         return self.sigma
 
 class k_model:
-    def __init__(self, prefix = ""):
-        self.x = 0.0
-        self.y = 0.0
-        self.th = 0.0
+    def __init__(self, prefix = "", x = 0.0, y = 0.0, th = 0.0):
+        self.x = x
+        self.y = y
+        self.th = th
         self.v = 0.0
         self.w = 0.0
         self.wr = 0.0
@@ -117,8 +117,14 @@ if __name__ == "__main__":
     # param_name = rospy.search_param()
     try:
         p = rospy.get_param('puzzlebot_odom/prefix_robot')
+        x = float(rospy.get_param('puzzlebot_odom/x'))
+        y = float(rospy.get_param('puzzlebot_odom/y'))
+        t = float(rospy.get_param('puzzlebot_odom/t'))
     except:
         p = ""
+        x = 0.0
+        y = 0.0
+        t = 0.0
     model = k_model(p)
     model.run()
 

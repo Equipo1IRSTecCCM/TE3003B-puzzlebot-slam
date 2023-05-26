@@ -27,7 +27,7 @@ from geometry_msgs.msg import Twist
 
 
 rospy.init_node('evasion_notebook_node') 
-base_vel_pub = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
+base_vel_pub = rospy.Publisher('/cmd_vel_camp', Twist, queue_size=10)
 
 # Nos valdremos de nuestra vieja función de movimiento, asi como la clase Laser para obtener las lecturas del sensor (revisar notebook 1)
 

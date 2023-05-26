@@ -1,6 +1,9 @@
 <launch>
     <arg name="prefix" default="he"/>
     <arg name="name" default="hernan"/>
+    <arg name="x" default="0.0"/>
+    <arg name="y" default="0.0"/>
+    <arg name="th" default="0.0"/>
     <group ns="$(arg prefix)">
         <!-- Arguments -->
         <remap from="/odom" to="/$(arg prefix)/odom"/>
@@ -21,10 +24,16 @@
         <remap from="/nav/std" to="/$(arg prefix)/nav/std"/>
         <remap from="/map_updates" to="/$(arg prefix)/map_updates"/>
         <remap from="/initialpose" to="/$(arg prefix)/initialpose"/>
+        <remap from="/finish" to="/$(arg prefix)/finish"/>
+        <remap from="/bool_frank" to="/$(arg prefix)/bool_frank"/>
+        
 
         <!-- Odometry and transform publisher -->
         <node name="puzzlebot_odom" pkg="puzzlebot_slam" type="odom.py">
             <param name="prefix_robot" value="$(arg prefix)" />
+            <param name="x" value="$(arg x)" />
+            <param name="y" value="$(arg y)" />
+            <param name="th" value="$(arg th)" />
         </node>
         <node name="puzzlebot_tf" pkg="puzzlebot_slam" type="transformer.py">
             <param name="prefix_robot" value="$(arg prefix)" />

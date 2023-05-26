@@ -11,3 +11,7 @@ catkin_ws/src/puzzlebot_control/CMakeLists.txt
 catkin_ws/src/puzzlebot_gazebo/CMakeLists.txt
 catkin_ws/src/puzzlebot_rviz/CMakeLists.txt
 catkin_ws/src/puzzlebot_slam/CMakeLists.txt
+catkin_ws/devel
+catkin_ws/build
+catkin_ws/.catkin_workspace
+
