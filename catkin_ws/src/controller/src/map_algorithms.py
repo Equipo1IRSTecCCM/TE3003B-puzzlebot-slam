@@ -13,7 +13,7 @@ from geometry_msgs.msg import PointStamped, PoseStamped, Quaternion
 from std_msgs.msg import Int16, Float32, Bool
 
 class mapping():
-    def __init__(self):
+    def __init__(self, prefix = ""):
         self.occupancy_grid = None
         self.info = None
         self.x = 0.0
@@ -23,8 +23,10 @@ class mapping():
         self.y_obj = 0.0
         self.path = []
         self.path_num = 0
-
-        
+        if prefix != "":
+            prefix = "/" + prefix
+        self.prefix = prefix
+        self.new_obj = False
 
         self.listener = tf.TransformListener()
 
@@ -35,13 +37,13 @@ class mapping():
         self.pub_count = rospy.Publisher("/brain/map_count", Int16, queue_size=10)
         self.pub_debug = rospy.Publisher("brain/debug", Float32, queue_size=10)
         self.pub_goal = rospy.Publisher('/brain/map_objective', PointStamped, queue_size=10)
-        self.pub_pose = rospy.Publisher('/move_base_simple/goal', PoseStamped,queue_size=10)
+        # self.pub_pose = rospy.Publisher('/move_base_simple/goal', PoseStamped,queue_size=10)
         self.cl_sub = rospy.Subscriber('/clicked_point',PointStamped,self.obj_cb)
         self.ob_sub = rospy.Subscriber('/brain/main_objective', PointStamped, self.obj_cb)
         self.pub_obj = rospy.Publisher('/brain/final_obj', PointStamped, queue_size=10)
     def callback_odom(self,msg):
         try:
-            (self.trans, self.rot) = self.listener.lookupTransform('/map', '/odom', rospy.Time(0))
+            (self.trans, self.rot) = self.listener.lookupTransform('/map', '{}/odom'.format(self.prefix), rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             self.trans = [0,0,0]
             self.rot = [0,0,0,1]
@@ -71,6 +73,7 @@ class mapping():
         self.x_obj = msg.point.x
         self.y_obj = msg.point.y
         self.path_num = len(self.path)
+        self.new_obj = True
     def callback_map(self, msg):
         self.info = msg.info
         # Convert the data to a numpy array
@@ -164,8 +167,8 @@ class mapping():
         
         map = np.reshape(self.occupancy_grid,(self.occupancy_grid.shape[0],self.occupancy_grid.shape[1])).copy()
         print(np.unique(map))
-        map[map == -1] = 255
-        map[map == 100] = 255
+        map[map == -1] = 1
+        map[map == 100] = 100
         map[map == 0] = 1
         print(np.unique(map))
         map = map.astype(np.uint8)
@@ -230,30 +233,68 @@ class mapping():
         dist = np.sqrt((self.x - self.x_obj)**2 + (self.y - self.y_obj)**2)
         if len(self.path) == 0 or dist < 0.1 or self.path_num == len(self.path):
             # self.getFinish()
-            self.create_path()
-        x_act = self.path[self.path_num].point.x
-        y_act = self.path[self.path_num].point.y
-        dist = np.sqrt((self.x - x_act)**2 + (self.y - y_act)**2)
+            if self.new_obj:
+                self.create_path()
+                print(self.path)
+                self.new_obj = False
+        if len(self.path) > 0 and self.path_num < len(self.path):
+            x_act = self.path[self.path_num].point.x
+            y_act = self.path[self.path_num].point.y
+            dist = np.sqrt((self.x - x_act)**2 + (self.y - y_act)**2)
+            
+            self.pub_goal.publish(self.path[self.path_num])
+            point = PointStamped()
+            point.header.stamp = rospy.Time.now()
+            point.header.frame_id = "map"
+            point.point.x = self.x_obj
+            point.point.y = self.y_obj
+            #Publish
+            self.pub_obj.publish(point)
+            if dist < 0.4:
+                self.path_num += 1
+    def go_to(self):
         
-        self.pub_goal.publish(self.path[self.path_num])
+        print(self.x_obj, self.y_obj)
+        xo_map = int((self.x_obj-self.info.origin.position.x) / self.info.resolution)
+        yo_map = int((self.y_obj-self.info.origin.position.y) / self.info.resolution)
+        self.position = (yo_map,xo_map)
+        map = np.reshape(self.occupancy_grid,(self.occupancy_grid.shape[0],self.occupancy_grid.shape[1])).copy()
+        
+        #Get the closest one inside of the ones in border
+        indices = np.array(np.where(map == 0))
+        distances = np.sqrt((indices[0] - self.position[0])**2 + (indices[1] - self.position[1])**2)
+
+        idx = np.argmin(distances)
+        [y_obj, x_obj] = indices[:,idx]
+
+        x_obj = x_obj*self.info.resolution + self.info.origin.position.x
+        y_obj = y_obj*self.info.resolution + self.info.origin.position.y
         point = PointStamped()
         point.header.stamp = rospy.Time.now()
         point.header.frame_id = "map"
-        point.point.x = self.x_obj
-        point.point.y = self.y_obj
+        point.point.x = x_obj
+        point.point.y = y_obj
+        print(x_obj, y_obj)
         #Publish
-        self.pub_obj.publish(point)
-        if dist < 0.4:
-            self.path_num += 1
-
+        # print("lol")
+        self.pub_goal.publish(point)
+        # print("lol")
+        print()
+        self.new_obj = False
 if __name__ == "__main__":
     rospy.init_node("Map_analyser")
+    try:
+        p = rospy.get_param('puzzlebot_odom/prefix_robot')
+        p2 = "/"+p
+    except:
+        p = ""
     
     m = mapping()
-    map_msg = rospy.wait_for_message('/map', OccupancyGrid)
+    # map_msg = rospy.wait_for_message('{}/map'.format(p), OccupancyGrid)
     rate = rospy.Rate(10)
+    print("Innit")
     while not rospy.is_shutdown():
         # m.getFinish()
-        m.follow_path()
+        m.go_to()
         # m.show_map()
         rate.sleep()

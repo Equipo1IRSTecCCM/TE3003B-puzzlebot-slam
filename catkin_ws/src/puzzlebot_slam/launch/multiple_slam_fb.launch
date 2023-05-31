@@ -1,0 +1,53 @@
+<launch>
+    <arg name="prefix" default="he"/>
+    <arg name="name" default="hernan"/>
+    <group ns="$(arg prefix)">
+        <!-- Arguments -->
+        <remap from="/odom" to="/$(arg prefix)/odom"/>
+        <remap from="/nav/restart" to="/$(arg prefix)/nav/restart"/>
+        <remap from="/wl" to="/$(arg prefix)/wl"/>
+        <remap from="/wr" to="/$(arg prefix)/wr"/>
+        <remap from="/map" to="/$(arg prefix)/map"/>
+        <remap from="/scan" to="/$(arg prefix)/scan"/>
+        <remap from="/scan_lag" to="/$(arg prefix)/scan_lag"/>
+        <remap from="/ctrl" to="/$(arg prefix)/ctrl"/>
+        <remap from="/cmd_vel" to="/$(arg prefix)/cmd_vel"/>
+        <remap from="/cmd_vel_eva" to="/$(arg prefix)/cmd_vel_eva"/>
+        <remap from="/cmd_vel_camp" to="/$(arg prefix)/cmd_vel_camp"/>
+        <remap from="/brain/map_count" to="/$(arg prefix)/brain/map_count"/>
+        <remap from="/brain/map_objective" to="/$(arg prefix)/brain/map_objective"/>
+        <remap from="/move_base_simple/goal" to="/$(arg prefix)/move_base_simple/goal"/>
+        <remap from="/nav/debugger2" to="/$(arg prefix)/nav/debugger2"/>
+        <remap from="/nav/std" to="/$(arg prefix)/nav/std"/>
+        <remap from="/map_updates" to="/$(arg prefix)/map_updates"/>
+        <remap from="/initialpose" to="/$(arg prefix)/initialpose"/>
+        <remap from="/finish" to="/$(arg prefix)/finish"/>
+        <remap from="/bool_frank" to="/$(arg prefix)/bool_frank"/>
+        
+
+        <!-- Odometry and transform publisher -->
+        <node name="puzzlebot_odom" pkg="puzzlebot_slam" type="odom.py">
+            <param name="prefix_robot" value="$(arg prefix)" />
+        </node>
+        <node name="puzzlebot_tf" pkg="puzzlebot_slam" type="transformer.py">
+            <param name="prefix_robot" value="$(arg prefix)" />
+        </node>
+    
+        <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find puzzlebot_gazebo)/urdf/puzzlebot.xacro'" />
+        <!-- <node name="puzzlebot_controller" pkg="puzzlebot_control" type="puzzlebot_control_node"/> -->
+        <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
+            <param name="tf_prefix" value=" $(arg prefix)" />
+        </node>
+
+        <node name="joint_state_publisher"  pkg="joint_state_publisher" type="joint_state_publisher"/> 
+        <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping">
+            <param name="base_frame" value="/$(arg prefix)/base_link"/>
+            <param name="odom_frame" value="/$(arg prefix)/odom"/>
+            <param name="map_update_interval" value="0.5"/>
+            <rosparam command="load" file="$(find puzzlebot_slam)/config/gmapping_params.yaml" />
+        </node>
+        <node name="rviz" pkg="rviz" type="rviz" args="-d $(find puzzlebot_rviz)/config_slam.rviz"/>
+        <!-- <include file="$(find forza_ctrl)/launch/ctrl.launch"/> -->
+        <include file="$(find puzzlebot_navigation)/launch/run_nav_fb.launch"/>
+    </group>
+</launch>

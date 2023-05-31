@@ -37,15 +37,16 @@ class Laser():
         return self._scan_data
 
 class pot_fields:
-    def __init__(self, obstacle_distance = 1.0, max_lin = 0.2, min_lin = 0.05, max_ang = 0.3, min_ang = 0.1, gain_rep = 0.004, gain_att = 2.0):
+    def __init__(self, obstacle_distance = 1.0, max_lin = 0.2, min_lin = 0.05, max_ang = 0.3, min_ang = 0.1, gain_rep = 0.004, gain_att = 2.0, prefix = ""):
         rospy.init_node('evasion_notebook_node') 
         _ = rospy.wait_for_message('scan', LaserScan)
-        self.vel_pub = rospy.Publisher('/cmd_vel_camp', Twist, queue_size=10)
+        self.vel_pub = rospy.Publisher('/pot_fields/cmd_vel', Twist, queue_size=10)
         self.odom_sub= rospy.Subscriber("/odom",Odometry,self.odom_cb)
         self.obj_sub = rospy.Subscriber('/brain/map_objective',PointStamped,self.obj_cb)
         # self.cl_sub = rospy.Subscriber('/clicked_point',PointStamped,self.obj_cb)
         self.laser = Laser()
-
+        if prefix != "":
+            self.prefix = "/" + prefix
         self.x = 0.0
         self.y = 0.0
         self.th = 0.0
@@ -154,7 +155,7 @@ class pot_fields:
 
         while not rospy.is_shutdown():
             try:
-                (self.trans, self.rot) = self.listener.lookupTransform('/map', '/odom', rospy.Time(0))
+                (self.trans, self.rot) = self.listener.lookupTransform('/map', '{}/odom'.format(self.prefix), rospy.Time(0))
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 continue
             xy, xycl = np.array((self.x,self.y)), np.array((self.x_obj,self.y_obj))
@@ -186,5 +187,9 @@ class pot_fields:
             
             self.rate.sleep()
 if __name__ == "__main__":
-    pot = pot_fields(obstacle_distance=0.5)
+    try:
+        p = rospy.get_param('puzzlebot_odom/prefix_robot')
+    except:
+        p = ""
+    pot = pot_fields(obstacle_distance=0.5, prefix=p)
     pot.run()

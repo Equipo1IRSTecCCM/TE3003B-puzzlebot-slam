@@ -37,17 +37,8 @@ class line_follower:
         rospy.init_node("line_follower")
 
         rospy.Subscriber('/video_source/raw',Image,self.source_callback)
-        #rospy.Subscriber('/pp/finish',UInt8,self.finsh_pp_callback)
-        #rospy.Subscriber('/img_properties/green/density',Float32,self.g_callback)
-        #rospy.Subscriber('/img_properties/red/density',Float32,self.r_callback)
-
-        rospy.Subscriber('/odom', Pose2D, self.odom_callback)
         self.twist_publisher = rospy.Publisher('/img_processing/cmd_vel', Twist, queue_size=10)
-        self.semf_msg = rospy.Publisher('/semforo',Image,queue_size=10)
         self.debug_msg = rospy.Publisher('/ojos',Image,queue_size=10)
-        self.debug_lines_msg = rospy.Publisher('/img_processing/lines',UInt8,queue_size=10)
-        #self.points_publisher = rospy.Publisher('/pp/points', Float32MultiArray, queue_size=10)
-        #self.pp_init = rospy.Publisher('/pp/init', UInt8, queue_size=10)
         self.t1 = rospy.Timer(rospy.Duration(self.dt),self.timer_callback)
         self.rate = rospy.Rate(10)
 
@@ -165,7 +156,7 @@ class line_follower:
                 img_gaus = cv2.GaussianBlur(img_gaus,(3,3),cv2.BORDER_DEFAULT)
                 img_gaus = cv2.GaussianBlur(img_gaus,(3,3),cv2.BORDER_DEFAULT)
                 img_gaus = cv2.GaussianBlur(img_gaus,(3,3),cv2.BORDER_DEFAULT)
-                img = img_gaus[int(img_gaus.shape[0]*5/6):int(img_gaus.shape[0])-1,int(img_gaus.shape[1]*6/20):int(img_gaus.shape[1]*12/20)-1]
+                img = img_gaus[int(img_gaus.shape[0]*5/6):int(img_gaus.shape[0])-1,int(img_gaus.shape[1]*4/20):int(img_gaus.shape[1]*14/20)-1]
                 img = img.astype(float) * 1.0
                 img = img.astype(np.uint8)
                 
@@ -192,90 +183,6 @@ class line_follower:
                 msg_img = Image()
                 msg_img = self.bridge.cv2_to_imgmsg(img)
                 self.debug_msg.publish(msg_img)
-                '''
-                # msg_img = Image()
-                # msg_img = self.bridge.cv2_to_imgmsg(skel)
-                # self.debug_msg.publish(msg_img)
-                #skel = cv2.Canny(img, 10, 100, apertureSize = 3)
-                lines = cv2.HoughLinesP(skel,0.1,np.pi/180*1.5,3,minLineLength=5,maxLineGap=100)
-                negro = np.zeros(skel.shape,np.uint8)
-                tamano = []
-                continuar = False
-                try:
-                    for x1,y1,x2,y2 in lines[0]:
-                        tamano.append(np.sqrt((x1-x2)**2+(y1-y2)**2))
-                    tamano.sort()
-                    continuar = True
-                except:
-                    print("No lineas")
-                enPasoZebra = False
-                if continuar:
-                    msg_t = UInt8()
-                    msg_t.data = len(lines)
-                    self.debug_lines_msg.publish(msg_t)
-                    if not enPasoZebra:
-                        idx = tamano.index(max(tamano))
-                        x1,y1,x2,y2 = lines[0][idx]
-                        cv2.line(skel,(x1,y1),(x2,y2),(255,255,255),1)
-                    
-                        puntoMedio = [int(negro.shape[1]/2),int(negro.shape[0]-3)]
-                        distancias = [self.getDistance(x1,y1,puntoMedio[0],puntoMedio[1]),self.getDistance(x2,y2,puntoMedio[0],puntoMedio[1])]
-                    
-                        print("Puntomedio y distancias",puntoMedio,distancias)
-                        #Topar pendiente a 10
-                        if distancias[0] > distancias[1]:
-                            puntoObjetivo = [x1,y1]
-                        else:
-                            puntoObjetivo = [x2,y2]
-                        d = float(puntoMedio[0]) - float(puntoObjetivo[0])
-                        
-                        
-                        #
-                        
-                        if x1!=x2:
-                            p = float(y1-y2)/float(x1-x2)
-                            if p > 10:
-                                p = 10
-                        else:
-                            p = 10
-                        #cv2.putText(skel,str(round(d,2))+" "+str(round(p,2)),(30,15),cv2.FONT_HERSHEY_SIMPLEX,0.3,(255,255,255),1)
-                        cv2.putText(skel,str(len(lines)),(30,15),cv2.FONT_HERSHEY_SIMPLEX,0.3,(255,255,255),1) 
-                        print("Drol",d)
-                        if abs(p) < 11:
-                            if abs(d) < 35:
-                                self.max_w = 0.03
-                            else:
-                                self.max_w = 0.05
-                            d /= float(puntoMedio[0])
-                            dtheta = d * self.max_w
-                        else:
-                            dtheta, vel = self.getValues(p,d)
-                    
-                        
-                    
-
-
-                    
-                    
-                    msg = Twist()
-                    msg.linear.x = vel
-                    msg.linear.y = 0
-                    msg.linear.z = 0
-                    msg.angular.x = 0
-                    msg.angular.y = 0
-                    msg.angular.z = dtheta
-                    if abs(msg.angular.z) > self.max_w:
-                        msg.angular.z = self.max_w * np.sign(msg.angular.z)
-                    cv2.putText(skel,str(round(dtheta,3)),(30,40),cv2.FONT_HERSHEY_SIMPLEX,0.3,(255,255,255),1)
-                    #publicar
-                    
-                    self.twist_publisher.publish(msg)
-                '''
-                
-                cv2.putText(negro,"x:" + str(round(self.x,1)) + " y:"+str(round(self.y,1)),(50,50),cv2.FONT_HERSHEY_SIMPLEX,0.3,(255,255,255),1)
-                # msg_img = Image()
-                # msg_img = self.bridge.cv2_to_imgmsg(skel)
-                # self.debug_msg.publish(msg_img)
         except:
             msg = Twist()
             msg.linear.x = 0
