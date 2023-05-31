@@ -1,0 +1,9 @@
+<launch>
+<remap from="/cmd_vel_camp" to="/cmd_vel"/>
+  <node name="campo" pkg="puzzlebot_navigation" type="potential_camps.py" />
+  <!-- <node name="reactivo" pkg="puzzlebot_navigation" type="evasive_navigation.py" /> -->
+  <!-- <node name="rodear" pkg="puzzlebot_navigation" type="around_obstacle.py" /> -->
+  <!-- <node name="std_find" pkg="puzzlebot_navigation" type="std_finder.py" /> -->
+  <!-- <node name="arbitro" pkg="puzzlebot_navigation" type="navigation_referee.py" /> -->
+  <node name="map_analyse" pkg="controller" type="map_algorithms.py" />
+</launch>

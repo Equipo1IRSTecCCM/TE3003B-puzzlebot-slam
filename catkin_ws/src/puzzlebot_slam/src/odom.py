@@ -44,6 +44,24 @@ class covariance_generator:
         
         return self.sigma
 
+class init_publisher:
+    def __init__(self,x = 0.0, y = 0.0, th = 0.0, prefix = ""):
+        self.x = x
+        self.y = y
+        self.z = 0.0
+        self.th = th
+        self.prefix = prefix
+
+        self.x_pub = rospy.Publisher("{}/map_merge/init_pose_x".format(self.prefix),Float64, queue_size=10)
+        self.y_pub = rospy.Publisher("{}/map_merge/init_pose_y".format(self.prefix),Float64, queue_size=10)
+        self.z_pub = rospy.Publisher("{}/map_merge/init_pose_z".format(self.prefix),Float64, queue_size=10)
+        self.th_pub = rospy.Publisher("{}/map_merge/init_pose_yaw".format(self.prefix),Float64, queue_size=10)
+
+    def update(self):
+        self.x_pub.publish(self.x)
+        self.y_pub.publish(self.y)
+        self.z_pub.publish(self.z)
+        self.th_pub.publish(self.th)
 class k_model:
     def __init__(self, prefix = "", x = 0.0, y = 0.0, th = 0.0):
         self.x = x
@@ -56,6 +74,8 @@ class k_model:
         if prefix != "":
             prefix = "/" + prefix
         self.prefix = prefix
+
+        self.init_pos = init_publisher(x=x,y=y,th=th,prefix=prefix)
         self.cov = covariance_generator()
 
         rospy.init_node('puzzlebot_deadReckoning')
@@ -75,10 +95,11 @@ class k_model:
         try:
             dt = 0.1
             past_t = rospy.Time.now()
-            
+            self.init_pos.update()
             rate = rospy.Rate(7)
             rate.sleep()
             while not rospy.is_shutdown():
+                self.init_pos.update()
                 now_t = rospy.Time.now()
                 dt = (now_t - past_t).to_sec()
                 self.w = -R * (self.wr - self.wl) / L
@@ -117,15 +138,21 @@ if __name__ == "__main__":
     # param_name = rospy.search_param()
     try:
         p = rospy.get_param('puzzlebot_odom/prefix_robot')
-        x = float(rospy.get_param('puzzlebot_odom/x'))
-        y = float(rospy.get_param('puzzlebot_odom/y'))
-        t = float(rospy.get_param('puzzlebot_odom/t'))
     except:
         p = ""
+    try:
+        x = float(rospy.get_param('puzzlebot_odom/x'))
+    except:
         x = 0.0
+    try:
+        y = float(rospy.get_param('puzzlebot_odom/y'))
+    except:
         y = 0.0
+    try:
+        t = float(rospy.get_param('puzzlebot_odom/t'))
+    except:
         t = 0.0
-    model = k_model(p)
+    model = k_model(p, x = x, y = y, th = t)
     model.run()
 
 

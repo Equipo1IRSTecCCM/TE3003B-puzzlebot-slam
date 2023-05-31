@@ -2,23 +2,21 @@
     <include file="$(find puzzlebot_slam)/launch/multiple_slam.launch">
         <arg name="prefix" value="he"/>
         <arg name="name" value="hernan"/>
-
+        <arg name="x" default="0.3"/>
+        <arg name="y" default="1.1"/>
+        <arg name="th" default="0.0"/>
     </include>
 
     <include file="$(find puzzlebot_slam)/launch/multiple_slam.launch">
         <arg name="prefix" value="fb"/>
-        <arg name="name" value="frankbot"/>
-        <!-- <arg name="x" default="3.0"/>
-        <arg name="y" default="2.0"/>
-        <arg name="th" default="0.0"/> -->
+        <arg name="name" value="fran-bot"/>
+        <arg name="x" default="0.3"/>
+        <arg name="y" default="0.6"/>
+        <arg name="th" default="0.0"/>
     </include>
-    <!-- <include file="$(find puzzlebot_slam)/launch/multiple_slam.launch">
-        <arg name="prefix" value="mm"/>
-        <arg name="name" value="motomami"/>
-    </include> -->
 
     <include file="$(find multirobot_map_merge)/launch/map_merge.launch">
-        <param name="known_init_poses" value="false"/>
+        <param name="known_init_poses" value="true"/>
         <param name="world_frame" value="map"/>
     </include>
 

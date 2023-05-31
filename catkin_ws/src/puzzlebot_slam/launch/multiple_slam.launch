@@ -24,8 +24,7 @@
         <remap from="/nav/std" to="/$(arg prefix)/nav/std"/>
         <remap from="/map_updates" to="/$(arg prefix)/map_updates"/>
         <remap from="/initialpose" to="/$(arg prefix)/initialpose"/>
-        <remap from="/finish" to="/$(arg prefix)/finish"/>
-        <remap from="/bool_frank" to="/$(arg prefix)/bool_frank"/>
+        <remap from="/brain/final_obj" to="/$(arg prefix)/brain/final_obj"/>
         
 
         <!-- Odometry and transform publisher -->
@@ -33,7 +32,7 @@
             <param name="prefix_robot" value="$(arg prefix)" />
             <param name="x" value="$(arg x)" />
             <param name="y" value="$(arg y)" />
-            <param name="th" value="$(arg th)" />
+            <param name="t" value="$(arg th)" />
         </node>
         <node name="puzzlebot_tf" pkg="puzzlebot_slam" type="transformer.py">
             <param name="prefix_robot" value="$(arg prefix)" />
