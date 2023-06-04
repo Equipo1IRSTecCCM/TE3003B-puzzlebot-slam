@@ -67,6 +67,12 @@ class pilot:
 
         self.lin_sub = rospy.Subscriber("{}/img_processing/cmd_vel".format(self.prefix), Twist, self.lin_cb)
 
+        #Arriving flag
+        self.arrived = False
+        self.std_vel = [0,0,0,0,0,0,0,0,0,0]
+        self.std_idx = 0
+
+        self.arr_pub = rospy.Publisher("{}/arrived".format(self.prefix), Bool, queue_size=10)
         #Publish the first point
         time.sleep(1)
         point = PointStamped()
@@ -119,7 +125,15 @@ class pilot:
         rate = rospy.Rate(10)
         th_obj = 0.0
         th_tol = 0.05
+        past_x = self.x
+        past_y = self.y
         while not rospy.is_shutdown():
+            vel = np.sqrt((past_x - self.x)**2 + (past_y - self.y))
+            self.std_vel[self.std_idx] = vel
+            std = np.mean(self.std_vel)
+            self.std_idx += 1
+            if self.std_idx >= len(self.std_vel):
+                self.std_idx = 0
             #Navigating
             if self.state == 0:
                 print(f'state: {self.state}')
@@ -166,7 +180,15 @@ class pilot:
                 print("Following line")
                 if self.lin_cmd.linear.x == 0.0:
                     pass
+                #Send go to arm when the last 10 speeds were 0
+                if abs(std) < 0.05:
+                    self.arrived = True
                 self.cmd_pub.publish(self.lin_cmd)
+            
+
+            past_x = self.x
+            past_y = self.y
+            self.arr_pub.publish(self.arrived)
             rate.sleep()
     def stop(self):
         msg = Twist()
