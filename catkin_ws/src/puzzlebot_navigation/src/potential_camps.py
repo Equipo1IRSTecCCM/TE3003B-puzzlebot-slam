@@ -47,6 +47,8 @@ class pot_fields:
         self.laser = Laser()
         if prefix != "":
             self.prefix = "/" + prefix
+        else:
+            self.prefix = ""
         self.x = 0.0
         self.y = 0.0
         self.th = 0.0
@@ -54,7 +56,7 @@ class pot_fields:
         self.y_obj = 0.0
         self.trans = np.array([0,0,0])
         self.rot = np.array([0,0,0,1])
-        self.obstacle_distance = obstacle_distance
+        self.obstacle_distance = 0.5 #obstacle_distance
         self.max_lin = max_lin
         self.min_lin = min_lin
         self.min_ang = min_ang
@@ -104,7 +106,7 @@ class pot_fields:
         try:
             data = self.laser.get_data()
             lec = np.asarray(data.ranges)
-            lec[np.isinf(lec)] = 13.5
+            lec[np.isinf(lec)] = 12
             deltaang = data.angle_increment
             laserdegs = np.arange(data.angle_min,data.angle_max,deltaang)
             Fx = 0.0
@@ -113,7 +115,7 @@ class pot_fields:
                 if (lec[i] < self.obstacle_distance): ###TUNABLE
                     Fx += (1/lec[i])**2 * np.cos(deg)
                     Fy += (1/lec[i])**2 * np.sin(deg)
-            Fth = np.arctan2(Fy,(Fx))+np.pi
+            Fth = np.arctan2(Fy,Fx)+np.pi
             Fmag = np.linalg.norm((Fx,Fy))
             return Fx, Fy, Fmag, Fth
         except:

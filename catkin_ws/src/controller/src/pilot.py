@@ -31,10 +31,10 @@ class pilot:
         print("Prefix: {}".format(prefix))
         #Objective generation
         if prefix == "" or prefix == "/he":
-            self.objectives = [[1.5,1.1],[2.5,1.1],[3.5,1.5],[5.0,1.7],[9.6,1.9]]#,[10.1,1.9]]
+            self.objectives = [[3.5,1.1],[9.6,2.3]]#,[9.6,2.3],[9.6,2.0],[9.6,2.0]] #[[1.5,1.1],[2.5,1.1],[3.5,1.5],[5.0,1.7],[9.6,1.9]]#,[10.1,1.9]]
         elif prefix == "/fb":
             #Cambiar el último punto por las medidas justo al frente de la línea
-            self.objectives = [[1.5,1.1],[2.5,1.1],[3.5,1.3],[5.0,1.5],[9.6,1.5]]
+            self.objectives = [[11.1,1.1]] #[9.6,1.5]]
         elif prefix == "/mm":
             self.objectives = [[1.5,1.1],[2.5,2.0],[5.0,2.0]]
         print("Obj: {}".format(self.objectives))
@@ -77,6 +77,7 @@ class pilot:
         self.obj_pub.publish(point)
 
     def odom_cb(self,msg):
+        # Get tf
         try:
             (self.trans, self.rot) = self.listener.lookupTransform('/map', '{}/odom'.format(self.prefix), rospy.Time(0))
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
@@ -90,7 +91,7 @@ class pilot:
 
         pose_in_odom = [msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z, msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
         transformation_matrix = np.dot(translation_matrix, rotation_matrix)
-
+        # Transform pose
         point_in_map = np.dot(transformation_matrix,
                             [pose_in_odom[0], pose_in_odom[1], pose_in_odom[2], 1])
         orientation_in_map = quaternion_multiply(self.rot,
@@ -121,6 +122,7 @@ class pilot:
         while not rospy.is_shutdown():
             #Navigating
             if self.state == 0:
+                print(f'state: {self.state}')
                 x_obj = self.objectives[self.obj_idx][0]
                 y_obj = self.objectives[self.obj_idx][1]
                 dist = np.sqrt((self.x - x_obj)**2 + (self.y - y_obj)**2)
@@ -141,6 +143,7 @@ class pilot:
             #Wall follower
             elif self.state == 1:
                 print("Following wall")
+            
                 if self.x < self.objectives[self.obj_num - 1][0] + 0.2:
                     self.cmd_pub.publish(self.wal_cmd)
                 else:

@@ -26,6 +26,7 @@ class tf_model:
         self.pub_scan = rospy.Publisher("{}/scan".format(self.prefix),LaserScan,queue_size=10)
         #self.publish_static()
         self.tf_broadcaster = tf.TransformBroadcaster()
+        
     def scan_cb(self,msg):
         m = LaserScan()
         m = msg
@@ -67,17 +68,6 @@ class tf_model:
             pose_trans.transform.translation.z = self.R
             pose_trans.transform.rotation.w = 1.0
             self.tf_broadcaster.sendTransformMessage(pose_trans)
-            #Gazebo
-            gaz_trans = TransformStamped()
-            gaz_trans.header.stamp = rospy.Time.now()
-            gaz_trans.header.frame_id = "/map"
-            gaz_trans.child_frame_id = self.prefix + "/odom"
-
-            gaz_trans.transform.translation.x = 0
-            gaz_trans.transform.translation.y = 0
-            gaz_trans.transform.translation.z = 0
-            gaz_trans.transform.rotation.w = 1.0
-            #self.tf_broadcaster.sendTransformMessage(gaz_trans)
             rate.sleep()
 
 if __name__ == "__main__":

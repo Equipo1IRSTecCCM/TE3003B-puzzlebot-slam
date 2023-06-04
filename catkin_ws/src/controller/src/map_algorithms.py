@@ -167,7 +167,7 @@ class mapping():
         
         map = np.reshape(self.occupancy_grid,(self.occupancy_grid.shape[0],self.occupancy_grid.shape[1])).copy()
         print(np.unique(map))
-        map[map == -1] = 1
+        map[map == -1] = 100
         map[map == 100] = 100
         map[map == 0] = 1
         print(np.unique(map))
@@ -295,6 +295,6 @@ if __name__ == "__main__":
     print("Innit")
     while not rospy.is_shutdown():
         # m.getFinish()
-        m.go_to()
-        # m.show_map()
+        # m.go_to()
+        m.show_map()
         rate.sleep()
