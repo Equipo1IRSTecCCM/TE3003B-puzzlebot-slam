@@ -13,14 +13,16 @@ After that you need to run the launch file [slam.launch](https://github.com/Dieg
 
     roslaunch puzzlebot_slam slam.launch
 
-Currently, I'm working on developing the functionality of mapping with multiple robots.
+For running multiple robots, you have to launch
+
+    roslaunch puzzlebot_slam coolab_slam.launch
 
 For this project it's important to use the following IPs to simplify our work (Work in progress):
 
 | Device        | IP            | Namespace |
 |---------------|---------------|-----------|
-| super-diego   | 192.168.0.117 | --        |
+| puzzlebot-master   | 192.168.0.117 | --        |
 | hernan        | 192.168.0.114 | he        |
 | frank-bot     | 192.168.0.120 | fb        |
 | moto-mami     | 192.168.0.123 | mm        |
-| util-diego    | 192.168.0.126 | --        |
+
