@@ -1,4 +1,0 @@
-<launch>
-    <include file="$(find puzzlebot_slam)/launch/run_slam.launch"/>
-    <include file="$(find puzzlebot_navigation)/launch/run_nav.launch"/>
-</launch>
