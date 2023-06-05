@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-# Campos potenciales
-
-
-
-
-
-import math
+'''
+TE3003B - Integración de robótica y sistemas inteligentes
+CRALIOS - Collaborative Robots Assembly Line for Irregular Objects using SLAM
+Navigates using potential fields
+@authors Diego Reyna Reyes
+@date 4/06/2023
+Mexico City, Mexico
+ITESM CCM
+'''
 import numpy as np
 import rospy
-import time
 from sensor_msgs.msg import LaserScan
 from geometry_msgs.msg import Twist
 from geometry_msgs.msg import PointStamped
@@ -37,26 +38,40 @@ class Laser():
         return self._scan_data
 
 class pot_fields:
-    def __init__(self, obstacle_distance = 1.0, max_lin = 0.2, min_lin = 0.05, max_ang = 0.3, min_ang = 0.1, gain_rep = 0.004, gain_att = 2.0, prefix = ""):
-        rospy.init_node('evasion_notebook_node') 
+    '''
+    Starts the pot_fields class
+    @param obstacle_distance: Max distance to take obstacles into account
+    @param max_lin: Max linear speed
+    @param min_lin: Min linear speed
+    @param max_ang: Max angular speed
+    @param min_anf: Min angular speed
+    @param gain_rep: Gain for the repulsion force
+    @param gain_att: Gain for the attraction force
+    @param prefix: Namespace of the robot
+    '''
+    def __init__(self, obstacle_distance = 0.5, max_lin = 0.2, min_lin = 0.05, max_ang = 0.3, min_ang = 0.1, gain_rep = 0.004, gain_att = 2.0, prefix = ""):
+        # Init node
+        rospy.init_node('pot_fields_node') 
         _ = rospy.wait_for_message('scan', LaserScan)
         self.vel_pub = rospy.Publisher('/pot_fields/cmd_vel', Twist, queue_size=10)
         self.odom_sub= rospy.Subscriber("/odom",Odometry,self.odom_cb)
         self.obj_sub = rospy.Subscriber('/brain/map_objective',PointStamped,self.obj_cb)
-        # self.cl_sub = rospy.Subscriber('/clicked_point',PointStamped,self.obj_cb)
         self.laser = Laser()
         if prefix != "":
             self.prefix = "/" + prefix
         else:
             self.prefix = ""
+        # Odometry
         self.x = 0.0
         self.y = 0.0
         self.th = 0.0
+        # Objective
         self.x_obj = 0.
         self.y_obj = 0.0
         self.trans = np.array([0,0,0])
         self.rot = np.array([0,0,0,1])
-        self.obstacle_distance = 0.5 #obstacle_distance
+        # Parameters
+        self.obstacle_distance = obstacle_distance
         self.max_lin = max_lin
         self.min_lin = min_lin
         self.min_ang = min_ang
@@ -67,12 +82,18 @@ class pot_fields:
 
         self.rate = rospy.Rate(20)
         rospy.on_shutdown(self.stop)
-
+    '''
+    Stops the robot when spin stops
+    '''
     def stop(self):
         v = Twist()
         self.vel_pub.publish(v)
-
+    '''
+    Callback for the /odom topic
+    @param msg: Odometry message
+    '''
     def odom_cb(self,msg): 
+        # Get tf
         translation_matrix = [[1, 0, 0, self.trans[0]],
                                 [0, 1, 0, self.trans[1]],
                                 [0, 0, 1, self.trans[2]],
@@ -82,6 +103,7 @@ class pot_fields:
         pose_in_odom = [msg.pose.pose.position.x, msg.pose.pose.position.y, msg.pose.pose.position.z, msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
         transformation_matrix = np.dot(translation_matrix, rotation_matrix)
 
+        # Transform pose
         point_in_map = np.dot(transformation_matrix,
                          [pose_in_odom[0], pose_in_odom[1], pose_in_odom[2], 1])
         orientation_in_map = quaternion_multiply(self.rot,
@@ -95,13 +117,18 @@ class pot_fields:
         orientation_in_map[3])
         euler = tf.transformations.euler_from_quaternion(quaternion)
         self.th = euler[2]
-
+    '''
+    Callback for receiving objectives
+    @param msg: PointStamped message
+    '''
     def obj_cb(self,msg):
         self.x_obj = msg.point.x
         self.y_obj = msg.point.y
 
 
-
+    '''
+    Get the repulsion force based on the LaserScan
+    '''
     def get_Rep_Force(self):
         try:
             data = self.laser.get_data()
@@ -123,7 +150,9 @@ class pot_fields:
         
     
 
-
+    '''
+    Get the attraction force based on the position
+    '''
     def get_Att_Force(self):
         xy, xycl = np.array((self.x,self.y)), np.array((self.x_obj,self.y_obj))
         euclD = np.linalg.norm(xy-xycl)
@@ -134,7 +163,9 @@ class pot_fields:
         Fmagat = np.linalg.norm((Fatrx,Fatry))
         return  Fatrx, Fatry , Fmagat, Fatrth, euclD
 
-
+    '''
+    Convert the total force to the final speed
+    '''
     def get_Speed(self,Ftotx,Ftoty,Ftotth):
         speed=Twist()
         if(abs(Ftotth) < self.min_ang) :
@@ -153,13 +184,14 @@ class pot_fields:
 
         return speed
     def run(self):
-
-
         while not rospy.is_shutdown():
+            # Get tf
             try:
                 (self.trans, self.rot) = self.listener.lookupTransform('/map', '{}/odom'.format(self.prefix), rospy.Time(0))
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
                 continue
+
+            # Get forces
             xy, xycl = np.array((self.x,self.y)), np.array((self.x_obj,self.y_obj))
             euclD=np.linalg.norm(xy-xycl)
 
@@ -170,15 +202,17 @@ class pot_fields:
             Ftotx = -Fmag * np.cos(Fth) * self.gain_rep + Fmagat * np.cos(Fatrth) * self.gain_att
             Ftoty = -Fmag * np.sin(Fth) * self.gain_rep + Fmagat * np.sin(Fatrth) * self.gain_att
             Ftotth = np.arctan2(Ftoty,Ftotx)
-            ###ANGLE NORMALIZATION
+            # Normalize angle
             if ( Ftotth> np.pi ):     
                 Ftotth = -np.pi - (Ftotth-np.pi)
             if (Ftotth < -np.pi): 
                 Ftotth = (Ftotth + 2 * np.pi)
-            ####
+            # Get Speed
             speed = self.get_Speed(Ftotx,Ftoty,Ftotth)
 
             radioRobot = 0.1
+
+            # Detect distance
             if euclD < radioRobot * 2: 
                 speed.angular.z = 0.0
                 speed.linear.x = 0.0

@@ -1,6 +1,5 @@
 <?xml version ="1.0" encoding="UTF-8"?>
 <launch>
-<!-- <remap from="/img_processing/cmd_vel" to="/cmd_vel"/> -->
 	<arg name="node_start_delay" default="1.0"/>
 	<node name="follower" pkg="line_detection" type="lineador.py" launch-prefix="bash -c 'sleep $(arg node_start_delay); $0 $@'"/>
 </launch>

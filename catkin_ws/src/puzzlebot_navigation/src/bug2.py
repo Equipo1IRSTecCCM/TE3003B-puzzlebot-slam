@@ -1,4 +1,13 @@
 #!/usr/bin/env python3
+'''
+TE3003B - Integración de robótica y sistemas inteligentes
+CRALIOS - Collaborative Robots Assembly Line for Irregular Objects using SLAM
+Follows a wall using the LIDAR
+@author Jorge Gerardo Iglesias Ortiz
+@date 4/06/2023
+Mexico City, Mexico
+ITESM CCM
+'''
 import rospy
 import numpy as np
 from geometry_msgs.msg import Twist, PoseStamped

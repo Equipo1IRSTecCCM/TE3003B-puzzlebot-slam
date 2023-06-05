@@ -1,3 +1,12 @@
+'''
+TE3003B - Integración de robótica y sistemas inteligentes
+CRALIOS - Collaborative Robots Assembly Line for Irregular Objects using SLAM
+Dijikstra algorithm
+@author Francisco Emiliano Rocha Pineda
+@date 4/06/2023
+Mexico City, Mexico
+ITESM CCM
+'''
 import heapq
 import cv2
 import matplotlib.pyplot as plt

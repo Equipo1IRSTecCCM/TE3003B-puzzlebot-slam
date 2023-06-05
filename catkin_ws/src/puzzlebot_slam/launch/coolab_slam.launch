@@ -21,5 +21,4 @@
     </include>
 
     <node pkg="tf2_ros" type="static_transform_publisher" name="my_static_transform_publisher" args="0 0 0 0 0 0 1 map world" />
-    <!-- <node name="rviz" pkg="rviz" type="rviz" args="-d $(find puzzlebot_rviz)/config_slam.rviz"/> -->
 </launch>

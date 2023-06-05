@@ -1,11 +1,22 @@
 #!/usr/bin/env python3
-
+'''
+TE3003B - Integración de robótica y sistemas inteligentes
+CRALIOS - Collaborative Robots Assembly Line for Irregular Objects using SLAM
+Allows driving the puzzlebot with an xbox controller
+@author Diego Reyna Reyes
+@date 4/06/2023
+Mexico City, Mexico
+ITESM CCM
+'''
 import rospy
 from sensor_msgs.msg import Joy
 from geometry_msgs.msg import Twist
 import numpy as np
 
 class ctrl:
+    '''
+    Starts the ctrl class
+    '''
     def __init__(self) -> None:
         self.go = False
         self.linear = 0.0
@@ -15,10 +26,15 @@ class ctrl:
         self.pub_cmd = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
         self.first_r = True
         self.first_l = True
+    '''
+    Read the control input
+    '''  
     def joy_cb(self, msg):
+        # Trigger button
         self.go = msg.buttons[0] == 1.0
         self.linear = 0.0
         self.angular = 0.0
+        # Read the bumpers and create linear and angular speed
         if self.go:
             r_t = msg.axes[5]
             if self.first_r:
@@ -54,11 +70,15 @@ class ctrl:
         else:
             self.linear = 0.0
             self.angular = 0.0
+    '''
+    Send the command
+    '''  
     def run(self):
         rate = rospy.Rate(10)
         increase = 0.05
         l = 0.0
         while not rospy.is_shutdown():
+            # Create a proportional control
             t = Twist()
             if abs(l - self.linear) > increase:
                 if l < self.linear:

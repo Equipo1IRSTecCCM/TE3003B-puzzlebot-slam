@@ -1,4 +1,14 @@
 #!/usr/bin/env python3
+
+'''
+TE3003B - Integración de robótica y sistemas inteligentes
+CRALIOS - Collaborative Robots Assembly Line for Irregular Objects using SLAM
+Follows a wall using the LIDAR
+@author Jorge Gerardo Iglesias Ortiz
+@date 4/06/2023
+Mexico City, Mexico
+ITESM CCM
+'''
 import rospy
 import numpy as np
 from geometry_msgs.msg import Twist, PoseStamped
@@ -73,14 +83,11 @@ def callbackScan(msg):
     scan_l = scan_l[np.isfinite(scan_l)]
 
     #Get booleans if obstacle in front and wall in its left
-    #0.65 distancia medida de la pared a la  línea
-    # #0.55 la distancia medida -0.1 
     nfb = not scan_f[scan_f < 0.3].shape[0] > 0 and not scan_l[scan_l < 0.25].shape[0] > 0
     #Y el 0.65 cambiar
     ilb = scan_l[scan_l < 0.35].shape[0] > 0
 
     #Calculate slope with regression and give it as error
-    #Y el 06 también por la distancia medida
     if scan_l[scan_l < 1.25].shape[0] >= 13:
         px = scan_l*np.cos(anglesl)
         py = scan_l*np.sin(anglesl)

@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
+'''
+TE3003B - Integración de robótica y sistemas inteligentes
+CRALIOS - Collaborative Robots Assembly Line for Irregular Objects using SLAM
+Decides which type of navigation it uses
+@authors Diego Reyna Reyes
+@authors Francisco Emiliano Rocha Pineda
+@authors Samantha Barrón Martinez
+@date 4/06/2023
+Mexico City, Mexico
+ITESM CCM
+'''
 
-#Arbitro
-import math
 import numpy as np
 import rospy
-import smach
-import smach_ros
 import tf
 import time
 from tf.transformations import quaternion_matrix, quaternion_multiply
@@ -17,8 +24,15 @@ from std_msgs.msg import Float32, Int16
 from std_msgs.msg import Bool
 
 class pilot:
+    '''
+    Starts the pilot class
+    @param x: Intial x position
+    @param y: Intial y position
+    @param th: Intial yaw position
+    @param prefix: Namespace of the robot
+    '''
     def __init__(self, x = 0.0, y = 0.0, th = 0.0, prefix = ""):
-
+        #Start node
         rospy.init_node("Toretto")
         rospy.on_shutdown(self.stop)
         #Referee
@@ -31,12 +45,11 @@ class pilot:
         print("Prefix: {}".format(prefix))
         #Objective generation
         if prefix == "" or prefix == "/he":
-            self.objectives = [[3.5,1.1],[9.6,2.3]]#,[9.6,2.3],[9.6,2.0],[9.6,2.0]] #[[1.5,1.1],[2.5,1.1],[3.5,1.5],[5.0,1.7],[9.6,1.9]]#,[10.1,1.9]]
+            self.objectives = [[3.5,1.1],[9.6,2.3]]
         elif prefix == "/fb":
-            #Cambiar el último punto por las medidas justo al frente de la línea
-            self.objectives = [[11.1,1.1]] #[9.6,1.5]]
+            self.objectives = [[11.1,1.1]]
         elif prefix == "/mm":
-            self.objectives = [[1.5,1.1],[2.5,2.0],[5.0,2.0]]
+            self.objectives = [[1.5,1.1],[2.5,2.0],[5.0,-0.5]]
         print("Obj: {}".format(self.objectives))
         self.obj_idx = 0
         self.obj_num = len(self.objectives)
@@ -81,7 +94,10 @@ class pilot:
         point.point.x = self.objectives[self.obj_idx][0]
         point.point.y = self.objectives[self.obj_idx][1]
         self.obj_pub.publish(point)
-
+    '''
+    Callback for the /odom topic
+    @param msg: Odometry message
+    '''
     def odom_cb(self,msg):
         # Get tf
         try:
@@ -111,36 +127,51 @@ class pilot:
         orientation_in_map[3])
         euler = tf.transformations.euler_from_quaternion(quaternion)
         self.th = euler[2]
-    
+    '''
+    Callback for the /pot_fields/cmd_vel topic
+    @param msg: Twist message
+    '''
     def nav_cb(self,msg):
         self.nav_cmd = msg
-
+    '''
+    Callback for the /wall/cmd_vel topic
+    @param msg: Twist message
+    '''
     def wal_cb(self,msg):
         self.wal_cmd = msg
     
+    '''
+    Callback for the /img_processing/cmd_vel topic
+    @param msg: Twist message
+    '''
     def lin_cb(self, msg):
         self.lin_cmd = msg
-    
+    '''
+    Selects the algorithm to use
+    '''
     def run(self):
+        # Define variables
         rate = rospy.Rate(10)
         th_obj = 0.0
         th_tol = 0.05
         past_x = self.x
         past_y = self.y
         while not rospy.is_shutdown():
+            # Calculate speed
             vel = np.sqrt((past_x - self.x)**2 + (past_y - self.y))
             self.std_vel[self.std_idx] = vel
             std = np.mean(self.std_vel)
             self.std_idx += 1
             if self.std_idx >= len(self.std_vel):
                 self.std_idx = 0
-            #Navigating
+            # Navigating
             if self.state == 0:
                 print(f'state: {self.state}')
                 x_obj = self.objectives[self.obj_idx][0]
                 y_obj = self.objectives[self.obj_idx][1]
                 dist = np.sqrt((self.x - x_obj)**2 + (self.y - y_obj)**2)
                 print("Dist: {}".format(dist))
+                # Send next point
                 if dist < 0.3:
                     self.obj_idx += 1
                     if self.obj_idx < self.obj_num:
@@ -157,7 +188,7 @@ class pilot:
             #Wall follower
             elif self.state == 1:
                 print("Following wall")
-            
+                # When advanced 0.2m change behaviour
                 if self.x < self.objectives[self.obj_num - 1][0] + 0.2:
                     self.cmd_pub.publish(self.wal_cmd)
                 else:
@@ -167,6 +198,7 @@ class pilot:
             elif self.state == 2:
                 th_err = th_obj - self.th
                 print("thr_err: {}".format(th_err))
+                # Allign to yaw = 0
                 if th_err < th_tol:
                     self.state = 3
                     print("Change to state 3")
@@ -178,6 +210,7 @@ class pilot:
             #Follow line
             elif self.state == 3:
                 print("Following line")
+                # Follow the line
                 if self.lin_cmd.linear.x == 0.0:
                     pass
                 #Send go to arm when the last 10 speeds were 0
@@ -185,11 +218,14 @@ class pilot:
                     self.arrived = True
                 self.cmd_pub.publish(self.lin_cmd)
             
-
+            # Update before next iteration
             past_x = self.x
             past_y = self.y
             self.arr_pub.publish(self.arrived)
             rate.sleep()
+    '''
+    Stops the robot when spin stops
+    '''
     def stop(self):
         msg = Twist()
         msg.linear.x = 0
@@ -201,6 +237,7 @@ class pilot:
         #Stop robot
         self.cmd_pub.publish(msg)
 if __name__ == "__main__":
+    # Get the parameters
     try:
         p = rospy.get_param('puzzlebot_odom/prefix_robot')
     except:

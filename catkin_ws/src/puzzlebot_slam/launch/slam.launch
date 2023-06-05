@@ -15,7 +15,6 @@
     <arg name="prefix" default=""/>
     <arg name="name" default="puzzlebot"/>
 
-    <!-- <node name="puzzlebot_controller" pkg="puzzlebot_control" type="puzzlebot_control_node"/> -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
         <param name="tf_prefix" value="$(arg prefix)" />
     </node>
@@ -29,7 +28,10 @@
         <!-- <rosparam command="load" file="$(find puzzlebot_slam)/config/gmapping_params.yaml" /> -->
     </node>
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find puzzlebot_rviz)/config_slam.rviz"/>
-    <!-- <include file="$(find forza_ctrl)/launch/ctrl.launch"/> -->
+    
+    <!-- Use xbox controller -->
+    <include file="$(find forza_ctrl)/launch/ctrl.launch"/>
+    
     <!-- Navigation -->
     <include file="$(find puzzlebot_navigation)/launch/run_cam.launch"/>
 
