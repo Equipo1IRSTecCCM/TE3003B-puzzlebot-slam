@@ -1,15 +1,20 @@
 <launch>
     <!-- Arguments -->
-    <arg name="slam_methods" default="gmapping" doc="slam type [gmapping, cartographer, hector, karto, frontier_exploration]"/>
     
-    <node name="puzzlebot_odom" pkg="puzzlebot_slam" type="odom.py"/>
+    <arg name="x" default="0.0"/>
+    <arg name="y" default="0.0"/>
+    <arg name="th" default="0.0"/>
+    <node name="puzzlebot_odom" pkg="puzzlebot_slam" type="odom.py">
+        <param name="x" value="$(arg x)" />
+        <param name="y" value="$(arg y)" />
+        <param name="t" value="$(arg th)" />
+    </node>
     <node name="puzzlebot_tf" pkg="puzzlebot_slam" type="transformer.py"/>
   
     <param name="robot_description" command="$(find xacro)/xacro --inorder '$(find puzzlebot_gazebo)/urdf/puzzlebot.xacro'" />
     <arg name="prefix" default=""/>
     <arg name="name" default="puzzlebot"/>
 
-    <!-- <node name="puzzlebot_controller" pkg="puzzlebot_control" type="puzzlebot_control_node"/> -->
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="false" output="screen">
         <param name="tf_prefix" value="$(arg prefix)" />
     </node>
@@ -19,10 +24,20 @@
         <param name="base_frame" value="base_link"/>
         <param name="odom_frame" value="odom"/>
         <param name="map_update_interval" value="0.5"/>
+
         <!-- <rosparam command="load" file="$(find puzzlebot_slam)/config/gmapping_params.yaml" /> -->
     </node>
     <node name="rviz" pkg="rviz" type="rviz" args="-d $(find puzzlebot_rviz)/config_slam.rviz"/>
+    
+    <!-- Use xbox controller -->
     <include file="$(find forza_ctrl)/launch/ctrl.launch"/>
-    <!-- <include file="$(find controller)/launch/move_base.launch"/> -->
-    <include file="$(find puzzlebot_navigation)/launch/run_nav.launch"/>
+    
+    <!-- Navigation -->
+    <include file="$(find puzzlebot_navigation)/launch/run_cam.launch"/>
+
+    <!-- Line follower -->
+    <include file="$(find line_detection)/launch/compu.launch"/>
+
+    <!-- Referee -->
+    <node name = "Toretto" pkg= "controller" type="pilot.py"/>
 </launch>

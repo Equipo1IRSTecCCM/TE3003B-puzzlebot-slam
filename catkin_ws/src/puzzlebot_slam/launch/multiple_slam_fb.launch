@@ -1,8 +1,8 @@
 <launch>
-    <arg name="prefix" default="he"/>
-    <arg name="name" default="hernan"/>
+    <arg name="prefix" default="fb"/>
+    <arg name="name" default="frank"/>
     <arg name="x" default="0.3"/>
-    <arg name="y" default="1.1"/>
+    <arg name="y" default="0.6"/>
     <arg name="th" default="0.0"/>
     <group ns="$(arg prefix)">
         <!-- Remap topics -->
@@ -67,9 +67,10 @@
             <param name = "ymin" value = "-15.0"/>
             <param name = "ymax" value = "15.0"/>
         </node>
+    <!-- <include file="$(find forza_ctrl)/launch/ctrl.launch"/> -->
 
         <!-- Navigation -->
-        <include file="$(find puzzlebot_navigation)/launch/run_cam.launch"/>
+        <include file="$(find puzzlebot_navigation)/launch/run_cam_fb.launch"/>
 
         <!-- Line follower -->
         <include file="$(find line_detection)/launch/compu.launch"/>

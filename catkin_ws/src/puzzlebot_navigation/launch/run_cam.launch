@@ -1,0 +1,4 @@
+<launch>
+  <node name="campo" pkg="puzzlebot_navigation" type="potential_camps.py" />
+  <node name="wall" pkg="puzzlebot_navigation" type="bug2.py" />
+</launch>

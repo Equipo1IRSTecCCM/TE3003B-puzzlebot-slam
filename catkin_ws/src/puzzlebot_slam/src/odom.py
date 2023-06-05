@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-
+'''
+TE3003B - Integración de robótica y sistemas inteligentes
+CRALIOS - Collaborative Robots Assembly Line for Irregular Objects using SLAM
+Uses Dead reckoning and the kinematic model 
+@author Diego Reyna Reyes
+@date 4/06/2023
+Mexico City, Mexico
+ITESM CCM
+'''
 import rospy
 import tf
 from nav_msgs.msg import Odometry
@@ -13,38 +21,42 @@ L = 0.191
 R = 0.05
 
 
-class covariance_generator:
-    def __init__(self):
-        self.kr = 0.1
-        self.kl = 0.1
 
-        self.wl = 0.0
-        self.wr = 0.0
+class init_publisher:
+    '''
+    Starts the init_pub class for map merge
+    @param x: Intial x position
+    @param y: Intial y position
+    @param th: Intial yaw position
+    @param prefix: Namespace of the robot
+    '''
+    def __init__(self,x = 0.0, y = 0.0, th = 0.0, prefix = ""):
+        self.x = x
+        self.y = y
+        self.z = 0.0
+        self.th = th
+        self.prefix = prefix
 
-        self.mu = np.zeros((3,1),dtype=float)
-        self.sigma = np.zeros((3,3),dtype=float)
-        self.H = np.zeros((3,3),dtype=float)
-
-        self.sigma_delta = np.array([[self.kr * abs(self.wr), 0], [0, self.kl * abs(self.wl)]],dtype=float)
-        self.Q = np.zeros((3,3),dtype=float)
-    
-    def get_cov(self, wl, wr, v, sk_1, dt):
-        self.wl = wl
-        self.wr = wr
-        x = 0
-        y = 1
-        theta = 2
-        gra_wk = 0.5 * R * dt * np.array([[np.cos(sk_1[theta]), np.cos(sk_1[theta])],[np.sin(sk_1[theta]), np.sin(sk_1[theta])],[2.0/L, -2.0/L]])
-        self.sigma_delta = np.array([[self.kr * abs(self.wr), 0.0], [0.0, self.kl * abs(self.wl)]])
-        self.Q = np.matmul(np.matmul(gra_wk,self.sigma_delta), gra_wk.T)
-        
-        self.H = np.array([[1.0,0.0, -dt * v * np.sin(sk_1[theta])],[0.0,1.0,dt * v * np.cos(sk_1[theta])],[0.0,0.0,1.0]])
-
-        self.sigma = np.matmul(np.matmul(self.H, self.sigma),self.H.T) + self.Q
-        
-        return self.sigma
-
+        self.x_pub = rospy.Publisher("{}/map_merge/init_pose_x".format(self.prefix),Float64, queue_size=10)
+        self.y_pub = rospy.Publisher("{}/map_merge/init_pose_y".format(self.prefix),Float64, queue_size=10)
+        self.z_pub = rospy.Publisher("{}/map_merge/init_pose_z".format(self.prefix),Float64, queue_size=10)
+        self.th_pub = rospy.Publisher("{}/map_merge/init_pose_yaw".format(self.prefix),Float64, queue_size=10)
+    '''
+    Publishes the intial position
+    '''
+    def update(self):
+        self.x_pub.publish(self.x)
+        self.y_pub.publish(self.y)
+        self.z_pub.publish(self.z)
+        self.th_pub.publish(self.th)
 class k_model:
+    '''
+    Starts the init_pub class for map merge
+    @param x: Intial x position
+    @param y: Intial y position
+    @param th: Intial yaw position
+    @param prefix: Namespace of the robot
+    '''
     def __init__(self, prefix = "", x = 0.0, y = 0.0, th = 0.0):
         self.x = x
         self.y = y
@@ -56,7 +68,8 @@ class k_model:
         if prefix != "":
             prefix = "/" + prefix
         self.prefix = prefix
-        self.cov = covariance_generator()
+
+        self.init_pos = init_publisher(x=x,y=y,th=th,prefix=prefix)
 
         rospy.init_node('puzzlebot_deadReckoning')
         self.pub_odom = rospy.Publisher('{}/odom'.format(self.prefix), Odometry, queue_size=10)
@@ -64,21 +77,30 @@ class k_model:
         self.wr_sub = rospy.Subscriber('{}/wr'.format(self.prefix), Float32, self.wl_cb)
 
     
-    
+    '''
+    Callback for the /wr topic
+    @param msg: Float32 message
+    '''
     def wr_cb(self, msg):
         self.wr = msg.data
-
+    '''
+    Callback for the /wl topic
+    @param msg: Float32 message
+    '''
     def wl_cb(self, msg):
         self.wl = msg.data
     
     def run(self):
         try:
+            # Create the variables
             dt = 0.1
             past_t = rospy.Time.now()
-            
+            self.init_pos.update()
             rate = rospy.Rate(7)
             rate.sleep()
             while not rospy.is_shutdown():
+                self.init_pos.update()
+                # Use kinematic model
                 now_t = rospy.Time.now()
                 dt = (now_t - past_t).to_sec()
                 self.w = -R * (self.wr - self.wl) / L
@@ -87,24 +109,15 @@ class k_model:
                 self.th += self.w * dt
                 self.x += self.v * np.cos(self.th) * dt
                 self.y += self.v * np.sin(self.th) * dt
-                #sigma = self.cov.get_cov(self.wl,self.wr,self.v,[self.x,self.y,self.th],dt)
+                # Create message
                 o = Odometry()
                 o.header.frame_id = "{}/odom".format(self.prefix)
                 o.child_frame_id = "{}/base_footprint".format(self.prefix)
                 o.header.stamp = rospy.Time.now()
                 o.pose.pose.position.x = self.x
                 o.pose.pose.position.y = self.y
-
                 quat = Quaternion(*quaternion_from_euler(0,0,self.th))
                 o.pose.pose.orientation = quat
-                
-                co = np.zeros((6,6),dtype=float)
-                # co[:2,:2] = sigma[:2,:2]
-                # co[-1,:2] = sigma[-1,:2]
-                # co[:2,-1] = sigma[:2,-1]
-                # co[-1,-1] = sigma[-1,-1]
-                #o.pose.covariance = co.reshape(36).tolist()
-
                 o.twist.twist.linear.x = self.v
                 o.twist.twist.angular.z = self.w
                 self.pub_odom.publish(o)
@@ -114,18 +127,24 @@ class k_model:
             pass
 
 if __name__ == "__main__":
-    # param_name = rospy.search_param()
+    # Read parameters
     try:
         p = rospy.get_param('puzzlebot_odom/prefix_robot')
-        x = float(rospy.get_param('puzzlebot_odom/x'))
-        y = float(rospy.get_param('puzzlebot_odom/y'))
-        t = float(rospy.get_param('puzzlebot_odom/t'))
     except:
         p = ""
+    try:
+        x = float(rospy.get_param('puzzlebot_odom/x'))
+    except:
         x = 0.0
+    try:
+        y = float(rospy.get_param('puzzlebot_odom/y'))
+    except:
         y = 0.0
+    try:
+        t = float(rospy.get_param('puzzlebot_odom/t'))
+    except:
         t = 0.0
-    model = k_model(p)
+    model = k_model(p, x = x, y = y, th = t)
     model.run()
 
 
